@@ -3,6 +3,15 @@ $script:scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 # Sourcing dependencies
 if(-not(Test-Path function:\Grant-AClPermission)) { . $scriptPath\Computer-Management.ps1}
 
+function Certificate-TrustLocal {
+    param(
+        $cert_thumbprint
+    )
+    Write-Host("Trusting certificate : '$cert_thumbprint'") -ForegroundColor "cyan"
+    Certificate-CopyToStore $cert_thumbprint "My" "TrustedPeople"
+}
+
+
 function Certificate-GrantKeyAccess {
     param(
         $cert_thumbprint,
