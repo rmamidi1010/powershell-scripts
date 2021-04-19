@@ -2,3 +2,16 @@
 $script:scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 # Sourcing dependencies
 if(-not(Test-Path function:\Grant-AClPermission)) { . $scriptPath\Computer-Management.ps1}
+
+function Certificate-GrantKeyAccess {
+    param(
+        $cert_thumbprint,
+        $user
+    )
+
+    $rsaFile = (Get-Item "Cert:\LocalMachine\My\$cert_thumbprint").privateKey.cspKeyContainerInfo.UniqueKeyContainerName
+    $keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys"
+    $fullPath = "$keyPath\$rsaFile"
+    Write-Host("Granting '$user' read-access to cert '$cert_thumbprint' keys")
+    Grant-ACLPermission -filePath $fullPath -user $user
+}
