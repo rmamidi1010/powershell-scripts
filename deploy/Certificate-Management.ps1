@@ -24,3 +24,31 @@ function Certificate-GrantKeyAccess {
     Write-Host("Granting '$user' read-access to cert '$cert_thumbprint' keys")
     Grant-ACLPermission -filePath $fullPath -user $user
 }
+
+function Certificate-CopyToStore {
+    param(
+        $cert_thumbprint,
+        $source_store_name,
+        $target_store_name,
+        $source_store_scope = "LocalMachine",
+        $target_store_scope = "LocalMachine"
+    )
+
+    Write-Host("Opening CertStore : '$source_store_scope\$source_store_name'...")
+    $source_store = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Store -ArgumentList $source_store_name, $source_store_scope
+    $source_store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+
+    $cert = $source_store.Certificates | Where {$_.thumbprint -eq $cert_thumbprint}
+    if (-not ($cert -ne $null)) {
+        Write-Host("Could not find a certificate with the thumbprint '$cert_thumbprint' in '$source_store_scope\$source_store_name'!") -ForegroundColor "red"
+    }
+
+    Write-Host("Opening target CertStore : '$target_store_scope\$target_store_name'...")
+    $target_store = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Store -ArgumentList $target_store_name, $target_store_scope
+    $target_store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    $target_store.Add($cert)
+
+    $source_store.Close()
+    $target_store.Close()
+}
+
