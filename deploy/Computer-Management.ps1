@@ -35,3 +35,16 @@ function Create-LocalGroup {
         [parameter(Mandatory = $true)][string] $groupName
     )
 }
+
+function Add-User {
+    param(
+        [parameter(Mandatory = $true)][string] $userName,
+        [parameter(Mandatory = $true)][string] $groupName
+    )
+    $computerName = $ENV:COMPUTERNAME
+    $group = [ADSI]"WinNT://$computerName/$groupName,group"
+
+    $group.Add("WinNT://$computerName/$userName,user")
+    Write-Host("User: '$userName' was added to the $groupName group")
+}
+
