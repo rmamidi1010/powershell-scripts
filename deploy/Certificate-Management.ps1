@@ -52,3 +52,28 @@ function Certificate-CopyToStore {
     $target_store.Close()
 }
 
+function Certificate-Import {
+    param(
+        $cert_file_path,
+        $passphrase
+    )
+
+    Write-Host("Importing certificate '$cert_file_path'...") -ForegroundColor "cyan"
+    if (($cert_file_path -ne "") -and ($passphrase -ne "") ) {
+        if ($cert_file_path.EndsWith(".cer")) {
+            CERTUTIL -f -addstore "My" $cert_file_path
+        }
+        else {
+            if ((Get-Module PKI) -eq $null) {
+                CERTUTIL -f -p $passphrase -importpfx $cert_file_path
+            }
+            else {
+                if (-not (Test-Path function:\Import-PfxCertificate)) { Import-Module PKI }
+                $secure_pass = ConvertTo-SecureString $passphrase -AsPlainText -Force
+                Import-PfxCertificate -FilePath $cert_file_path "Cert:\LocalMachine\My" -Password $secure_pass
+            }
+        }
+    }
+}
+
+
