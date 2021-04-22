@@ -48,3 +48,23 @@ function Add-User {
     Write-Host("User: '$userName' was added to the $groupName group")
 }
 
+function Get-ScheduledTasks {
+    param(
+        $library
+    )
+    $schedule = New-Object -ComObject "Schedule.Service"
+    $schedule.Connect() 
+    $tasks = @()
+    $schedule.GetFolder($library).GetTasks(0) | % {
+        $xml = $_.xml -as [Xml]
+        $tasks += New-Object PSObject -Property @{
+            "Name" = $_.Name
+            "Path" = $_.Path
+            "LastRunTime" = $_.LastRunTime
+            "NextRunTime" = $_.NextRunTime
+            "Actions" = ($xml.Task.Actions.Exec | % { "$($_.Command) $($_.Arguments)" }) -join "`n"
+        }
+    }
+    return $tasks
+}
+
