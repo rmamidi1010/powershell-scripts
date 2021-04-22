@@ -48,3 +48,57 @@ function Add-User {
     Write-Host("User: '$userName' was added to the $groupName group")
 }
 
+function Get-ScheduledTasks {
+    param(
+        $library
+    )
+    $schedule = New-Object -ComObject "Schedule.Service"
+    $schedule.Connect() 
+    $tasks = @()
+    $schedule.GetFolder($library).GetTasks(0) | % {
+        $xml = $_.xml -as [Xml]
+        $tasks += New-Object PSObject -Property @{
+            "Name" = $_.Name
+            "Path" = $_.Path
+            "LastRunTime" = $_.LastRunTime
+            "NextRunTime" = $_.NextRunTime
+            "Actions" = ($xml.Task.Actions.Exec | % { "$($_.Command) $($_.Arguments)" }) -join "`n"
+        }
+    }
+    return $tasks
+}
+
+## Grant Access
+function Grant-ACLPermission {
+    param(
+        $filePath,
+        $user,
+        $permission = "Read",
+        $allowance = "Allow",
+        [switch] $recurse = $false
+    )
+
+    $acl = Get-Acl -Path $filePath
+
+    Try 
+    {
+        if ($recurse) {
+            $children = $user, $permission, ("ContainerInherit", "ObjectInherit"), "InheritOnly", $allowance
+            $childrenRule = New-Object System.Security.AccessControl.FileSystemAccessRule $children
+            $acl.AddAccessRule($childrenRule)
+        }
+        
+        $p = $user, $permission, $allowance
+        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $p
+        $acl.AddAccessRule($accessRule)
+
+        Set-Acl $filePath $acl
+        Write-Host("ACL successfully updated on $filePath")
+    }
+    Catch
+    {
+        Write-ERROR ("[ERROR] Unable to modify $permission access to $filePath for $user on $ENV:COMPUTERNAME. Please Investigate.")
+    }
+}
+
+
