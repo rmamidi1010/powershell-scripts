@@ -31,3 +31,78 @@ if ($help) {
       exit 0
     }
   }
+
+doMaxConnection = $PSBoundParameters.ContainsKey("maxConnection")
+$doMaxIoThreads = $PSBoundParameters.ContainsKey("maxIoThreads")
+$doMinIoThreads = $PSBoundParameters.ContainsKey("minIoThreads")
+$doMaxWorkerThreads = $PSBoundParameters.ContainsKey("maxWorkerThreads")
+$doMinWorkerThreads = $PSBoundParameters.ContainsKey("minWorkerThreads")
+$doMinFreeThreads = $PSBoundParameters.ContainsKey("minFreeThreads")
+$doMinLocalRequestFreeThreads = $PSBoundParameters.ContainsKey("minLocalRequestFreeThreads")
+
+#get initial config sections
+$numberOfCores = Get-WmiObject -class win32_processor numberOfCores | Select-Object -ExpandProperty numberOfCores | ForEach-Object {$result+=$_} -Begin {$result=$null} -End {$result}
+
+$machineConfig = [System.Configuration.ConfigurationManager]::OpenMachineConfiguration()
+
+$processModel = $machineConfig.SectionGroups['system.web'].ProcessModel
+$httpRuntime = $machineConfig.SectionGroups['system.web'].HttpRuntime
+$connectionManagement = $machineConfig.SectionGroups['system.net'].ConnectionManagement
+
+#write original values
+Write-Host ('Existing Values:')
+Write-Host ("              MaxWorkerThreads: " + $processModel.MaxWorkerThreads) -ForegroundColor Gray
+Write-Host ("              MinWorkerThreads: " + $processModel.MinWorkerThreads) -ForegroundColor Gray
+Write-Host ("                  MaxIoThreads: " + $processModel.MaxIOThreads) -ForegroundColor Gray
+Write-Host ("                  MinIoThreads: " + $processModel.MinIOThreads) -ForegroundColor Gray
+Write-Host ("                MinFreeThreads: " + $httpRuntime.MinFreeThreads) -ForegroundColor Gray
+Write-Host ("    MinLocalRequestFreeThreads: " + $httpRuntime.MinLocalRequestFreeThreads) -ForegroundColor Gray
+Write-Host ("                 MaxConnection: " + $connectionManagement.ConnectionManagement.MaxConnection) -ForegroundColor Gray
+Write-Host ("")
+
+if ($reportOnly) {
+    exit 0
+}
+
+# do input validation
+if ($maxConnection -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: maxConnection value $maxConnection is less than 1" -ForegroundColor Yellow
+}
+if ($maxIoThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: maxIoThreads value $maxIoThreads is less than 1" -ForegroundColor Yellow
+}
+if ($minIoThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: minIoThreads value $minIoThreads is less than 1" -ForegroundColor Yellow
+}
+if ($maxWorkerThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: maxWorkerThreads value $maxWorkerThreads is less than 1" -ForegroundColor Yellow
+}
+if ($minWorkerThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: minWorkerThreads value $minWorkerThreads is less than 1" -ForegroundColor Yellow
+}
+if ($minFreeThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: minFreeThreads value $minFreeThreads is less than 1" -ForegroundColor Yellow
+}
+if ($minLocalRequestFreeThreads -lt 1) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: minLocalRequestFreeThreads value $minLocalRequestFreeThreads is less than 1" -ForegroundColor Yellow
+}
+if ($maxWorkerThreads -lt $minWorkerThreads) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: maxWorkerThreads value $maxWorkerThreads is less than minWorkerThreads value $minWorkerThreads" -ForegroundColor Yellow
+}
+if ($maxIoThreads -lt $minIoThreads) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: maxIoThreads value $maxIoThreads is less than minIoThreads value $minIoThreads" -ForegroundColor Yellow
+}
+if ($minFreeThreads -lt $minLocalRequestFreeThreads) {
+    $isValid = $false
+    Write-Host "WARNING: Validation: minFreeThreads value $minFreeThreads is less than minLocalRequestFreeThreads value $minLocalRequestFreeThreads" -ForegroundColor Yellow
+}
+
