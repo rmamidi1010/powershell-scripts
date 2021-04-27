@@ -100,5 +100,3 @@ function Grant-ACLPermission {
         Write-ERROR ("[ERROR] Unable to modify $permission access to $filePath for $user on $ENV:COMPUTERNAME. Please Investigate.")
     }
 }
-
-
