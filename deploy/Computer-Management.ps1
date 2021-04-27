@@ -68,3 +68,35 @@ function Get-ScheduledTasks {
     return $tasks
 }
 
+## Grant Access
+function Grant-ACLPermission {
+    param(
+        $filePath,
+        $user,
+        $permission = "Read",
+        $allowance = "Allow",
+        [switch] $recurse = $false
+    )
+
+    $acl = Get-Acl -Path $filePath
+
+    Try 
+    {
+        if ($recurse) {
+            $children = $user, $permission, ("ContainerInherit", "ObjectInherit"), "InheritOnly", $allowance
+            $childrenRule = New-Object System.Security.AccessControl.FileSystemAccessRule $children
+            $acl.AddAccessRule($childrenRule)
+        }
+        
+        $p = $user, $permission, $allowance
+        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $p
+        $acl.AddAccessRule($accessRule)
+
+        Set-Acl $filePath $acl
+        Write-Host("ACL successfully updated on $filePath")
+    }
+    Catch
+    {
+        Write-ERROR ("[ERROR] Unable to modify $permission access to $filePath for $user on $ENV:COMPUTERNAME. Please Investigate.")
+    }
+}
