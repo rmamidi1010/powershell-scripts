@@ -106,3 +106,61 @@ if ($minFreeThreads -lt $minLocalRequestFreeThreads) {
     Write-Host "WARNING: Validation: minFreeThreads value $minFreeThreads is less than minLocalRequestFreeThreads value $minLocalRequestFreeThreads" -ForegroundColor Yellow
 }
 
+#do updates
+if ($doMaxIoThreads -or $doMinIoThreads -or $doMaxWorkerThreads -or $doMinWorkerThreads) {
+    $processModel.SectionInformation.RevertToParent()
+    if ($doMaxWorkerThreads) {
+        $processModel.MaxWorkerThreads = $maxWorkerThreads
+    }
+    if ($doMinWorkerThreads) {
+        $processModel.MinWorkerThreads = $minWorkerThreads
+    }
+    if ($doMaxIoThreads) {
+        $processModel.MaxIOThreads = $maxIoThreads
+    }
+    if ($doMinIoThreads) {
+    $processModel.MinIOThreads = $minIoThreads
+    }
+}
+
+if ($doMinFreeThreads) {
+    $httpRuntime.MinFreeThreads = $minFreeThreads * $numberOfCores
+}
+if ($doMinLocalRequestFreeThreads) {
+    $httpRuntime.MinLocalRequestFreeThreads = $minLocalRequestFreeThreads * $numberOfCores
+}
+if ($doMaxConnection) {
+    $connectionManagement.ConnectionManagement.Add((New-Object System.Net.Configuration.ConnectionManagementElement *, ($maxConnection * $numberOfCores)))
+}
+
+#show new values
+Write-Host ('New Values:')
+Write-Host ("              MaxWorkerThreads: " + $processModel.MaxWorkerThreads) -ForegroundColor $(if ($doMaxWorkerThreads) {"Green"} else {"Gray"})
+Write-Host ("              MinWorkerThreads: " + $processModel.MinWorkerThreads) -ForegroundColor $(if ($doMinWorkerThreads) {"Green"} else {"Gray"})
+Write-Host ("                  MaxIoThreads: " + $processModel.MaxIOThreads) -ForegroundColor $(if ($doMaxIoThreads) {"Green"} else {"Gray"})
+Write-Host ("                  MinIoThreads: " + $processModel.MinIOThreads) -ForegroundColor $(if ($doMinIoThreads) {"Green"} else {"Gray"})
+Write-Host ("            [*] MinFreeThreads: " + $httpRuntime.MinFreeThreads + " ($minFreeThreads * $numberOfCores)") -ForegroundColor $(if ($doMinFreeThreads) {"Green"} else {"Gray"})
+Write-Host ("[*] MinLocalRequestFreeThreads: " + $httpRuntime.MinLocalRequestFreeThreads + " ($minLocalRequestFreeThreads * $numberOfCores)") -ForegroundColor $(if ($doMinLocalRequestFreeThreads) {"Green"} else {"Gray"})
+Write-Host ("             [*] MaxConnection: " + $connectionManagement.ConnectionManagement.MaxConnection + " ($maxConnection * $numberOfCores)") -ForegroundColor $(if ($doMaxConnection) {"Green"} else {"Gray"})
+Write-Host ("Note: [*] => value adjusted for scaling to number of available cores") -ForegroundColor Gray
+Write-Host ("")
+
+#save updates
+if ($commit) {
+    $doWrite = $true
+    if (-not $isValid) {
+        if ($ignoreValidation) {
+            Write-Host ("WARNING: new values were flagged as not valid, but -ignoreValidation was specified") -ForegroundColor Yellow
+        } else {
+            Write-Host ("WARNING: new values were flagged as invalid and will not be written back to machine.config.") -ForegroundColor Yellow
+            $doWrite = $false
+        }
+    }
+    if ($doWrite) {
+        Write-Host ("Writing to machine.config...")
+        $machineConfig.Save()
+        Write-Host ("Written to machine.config.") -ForegroundColor Green
+    }
+} else {
+    Write-Host ("-commit not specified, changes will not be saved") -ForegroundColor Yellow
+}
