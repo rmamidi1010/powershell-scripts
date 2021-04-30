@@ -40,3 +40,66 @@ function Unzip
         Expand-Archive -Path "$src" -DestinationPath "$trg" -Force 
     } 
 }
+
+function Assemble-Config {
+    param(
+        [parameter(Mandatory=$true)][string[]] $base_configs,
+        [string[]] $over_configs = @()
+    )
+
+    $global:configs = New-Object System.Collections.Stack
+
+    foreach($file in $base_configs) {
+        if (-not(Test-Path $file)) {
+            $message = "$file not found! Proceeding with warnings..."
+            Write-Host("$message") -foregroundcolor "yellow"
+            $notes += $message
+        }
+        else {
+            $config_obj = Load-Config $file
+            $configs.push($config_obj)
+        }
+    }
+
+    foreach($file in $over_configs) {
+        if (-not(Test-Path $file)) {
+            $message = "$file not found! Proceeding with warnings..."
+            Write-Host("$message") -foregroundcolor "yellow"
+            $notes += $message
+        }
+        else {
+            $config_obj = Load-Config $file
+            $configs.push($config_obj)
+        }
+    }
+
+    $resolved = New-Object System.Collections.Stack
+
+    foreach($file in $base_configs) {
+        if (-not(Test-Path $file)) {
+            $message = "$file not found! Proceeding with warnings..."
+            Write-Host("$message") -foregroundcolor "yellow"
+            $notes += $message
+        }
+        else {
+            $config_obj = ((Get-Content $file -raw -Encoding utf8).replace('$(computername)', "$ENV:COMPUTERNAME").replace('$(dns_domain)', (Get-Config 'dns_domain'))) -Join "`n" | ConvertFrom-Json
+            $resolved.push($config_obj)
+        }
+    }
+
+    foreach($file in $over_configs) {
+        if (-not(Test-Path $file)) {
+            $message = "$file not found! Proceeding with warnings..."
+            Write-Host("$message") -foregroundcolor "yellow"
+            $notes += $message
+        }
+        else {
+            $config_obj = ((Get-Content $file -raw -Encoding utf8).replace('$(computername)', "$ENV:COMPUTERNAME").replace('$(dns_domain)', (Get-Config 'dns_domain'))) -Join "`n" | ConvertFrom-Json
+            $resolved.push($config_obj)
+        }
+    }
+
+    $global:configs = $resolved
+}
+
+
