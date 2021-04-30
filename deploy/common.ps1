@@ -18,3 +18,25 @@ function fail-error {
     throw $message
     Exit 1
 }
+
+function Unzip
+{
+    param(
+        [string]$zipfile, 
+        [string]$outpath,
+        [bool]$overwrite = $true
+    )
+    $src = Resolve-Path $zipfile
+    $trg = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($outpath)
+
+    if ($PSVERSIONTABLE.PSVersion.Major -lt 5) { 
+        Add-Type -AssemblyName System.IO.Compression.FileSystem 
+        # Since PS4.0 does not support overwrite during unzipping, the calling code need to manually taking care of it first
+        # This is required for most of our 2008 R2 lab servers
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($src, $trg, $overwrite)
+    } 
+    else { 
+        # 2016 Srv all have PS v5.0 installed by default, so overwrite switch is always on
+        Expand-Archive -Path "$src" -DestinationPath "$trg" -Force 
+    } 
+}
