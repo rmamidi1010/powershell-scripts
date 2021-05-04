@@ -102,4 +102,23 @@ function Assemble-Config {
     $global:configs = $resolved
 }
 
+function Load-Config {
+    param(
+        [parameter(Mandatory=$true)][string] $config_json
+    )
+    if ($PSVERSIONTABLE.PSVersion.Major -lt 4) {
+        Write-Host("Windows PowerShell Version 4.0 or greater is required to read from the .json configuration file.") -foregroundcolor "Red"
+        Write-Host("This console's current version is " + $PSVERSIONTABLE.PSVersion + ".") -foregroundcolor "Red"
+        Exit 1
+    }
+    try {
+        $config_json = Resolve-Path $config_json
+        Write-Host("Loading deployment configuration from $config_json")
+        return (Get-Content $config_json -Encoding utf8) -Join "`n" | ConvertFrom-Json 
+    }
+    catch [Exception] {
+        Write-Host("Could not load deployment configuration from $config_json, please check the files formatting.") -foregroundcolor "Red"
+    }
+}
+
 
