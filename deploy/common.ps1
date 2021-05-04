@@ -121,4 +121,14 @@ function Load-Config {
     }
 }
 
+function Save-Config {
+    param(
+        [Parameter(Mandatory=$true)] $config,
+        [Parameter(Mandatory=$true)][string] $outfile
+    )
+    Write-Host("Writing configuration to $outfile")
+    $config | ConvertTo-Json -Depth 100 | Set-Content $outfile -Encoding utf8
+}
+
+
 
